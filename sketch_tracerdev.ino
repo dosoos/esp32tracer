@@ -89,8 +89,6 @@ void checkVibration() {
     if (currentTime - lastVibrationTime > DEBOUNCE_TIME) {  // 防抖
       vibrationCount++;
       lastVibrationTime = currentTime;
-      Serial.print("Vibration detected! Count: ");
-      Serial.println(vibrationCount);
     }
   }
   
