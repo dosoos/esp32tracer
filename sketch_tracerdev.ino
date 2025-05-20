@@ -53,20 +53,6 @@ void setup() {
   } else {
     Serial.println("SD Card initialized.");
     sdCardAvailable = true;
-    
-    // 创建新的CSV文件，文件名包含日期
-    String fileName = "/data_" + String(gps.date.year()) + 
-                     String(gps.date.month()) + 
-                     String(gps.date.day()) + ".csv";
-    
-    // 如果文件不存在，创建文件并写入表头
-    if(!SD.exists(fileName)) {
-      dataFile = SD.open(fileName, FILE_WRITE);
-      if(dataFile) {
-        dataFile.println("Time,Latitude,Longitude,Altitude,Satellites,Vibration");
-        dataFile.close();
-      }
-    }
   }
   
   // 初始化OLED
@@ -119,6 +105,15 @@ void saveData() {
   String fileName = "/data_" + String(gps.date.year()) + 
                    String(gps.date.month()) + 
                    String(gps.date.day()) + ".csv";
+  
+  // 如果文件不存在，创建文件并写入表头
+  if(!SD.exists(fileName)) {
+    dataFile = SD.open(fileName, FILE_WRITE);
+    if(dataFile) {
+      dataFile.println("Time,Latitude,Longitude,Altitude,Satellites,Vibration");
+      dataFile.close();
+    }
+  }
   
   dataFile = SD.open(fileName, FILE_APPEND);
   if (dataFile) {
