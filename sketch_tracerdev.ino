@@ -2,6 +2,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <TinyGPS++.h>
+#include <SD.h>
+#include <SPI.h>
 
 // OLED参数
 #define SCREEN_WIDTH 128
@@ -22,6 +24,16 @@ int vibrationCount = 0;  // 震动计数
 unsigned long lastVibrationTime = 0;  // 上次震动时间
 int vibrationLevel = 0;  // 震动等级
 
+// SD卡参数
+#define SD_CS 5    // SD卡CS引脚连接到GPIO5
+#define SD_MOSI 23 // SD卡MOSI引脚连接到GPIO23
+#define SD_MISO 19 // SD卡MISO引脚连接到GPIO19
+#define SD_SCK 18  // SD卡CLK引脚连接到GPIO18
+File dataFile;
+bool sdCardAvailable = false;
+unsigned long lastSaveTime = 0;
+const unsigned long SAVE_INTERVAL = 1000;  // 每秒保存一次数据
+
 void setup() {
   Serial.begin(115200);
   Serial.println("Starting GPS Test...");
@@ -32,6 +44,30 @@ void setup() {
 
   // 初始化震动传感器
   pinMode(VIBRATION_PIN, INPUT);
+  
+  // 初始化SD卡
+  SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+  if(!SD.begin(SD_CS)) {
+    Serial.println("SD Card initialization failed!");
+    sdCardAvailable = false;
+  } else {
+    Serial.println("SD Card initialized.");
+    sdCardAvailable = true;
+    
+    // 创建新的CSV文件，文件名包含日期
+    String fileName = "/data_" + String(gps.date.year()) + 
+                     String(gps.date.month()) + 
+                     String(gps.date.day()) + ".csv";
+    
+    // 如果文件不存在，创建文件并写入表头
+    if(!SD.exists(fileName)) {
+      dataFile = SD.open(fileName, FILE_WRITE);
+      if(dataFile) {
+        dataFile.println("Time,Latitude,Longitude,Altitude,Satellites,Vibration");
+        dataFile.close();
+      }
+    }
+  }
   
   // 初始化OLED
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -73,6 +109,43 @@ void checkVibration() {
   }
 }
 
+void saveData() {
+  if (!sdCardAvailable || !gps.location.isValid()) return;
+  
+  unsigned long currentTime = millis();
+  if (currentTime - lastSaveTime < SAVE_INTERVAL) return;
+  lastSaveTime = currentTime;
+  
+  String fileName = "/data_" + String(gps.date.year()) + 
+                   String(gps.date.month()) + 
+                   String(gps.date.day()) + ".csv";
+  
+  dataFile = SD.open(fileName, FILE_APPEND);
+  if (dataFile) {
+    // 构建CSV行
+    String dataString = "";
+    
+    // 时间
+    if (gps.time.isValid()) {
+      dataString += String(gps.time.hour()) + ":" +
+                   String(gps.time.minute()) + ":" +
+                   String(gps.time.second()) + ",";
+    } else {
+      dataString += "N/A,";
+    }
+    
+    // 位置数据
+    dataString += String(gps.location.lat(), 6) + "," +
+                 String(gps.location.lng(), 6) + "," +
+                 String(gps.altitude.meters()) + "," +
+                 String(gps.satellites.value()) + "," +
+                 String(vibrationLevel);
+    
+    dataFile.println(dataString);
+    dataFile.close();
+  }
+}
+
 void loop() {
   // 读取GPS数据
   while (gpsSerial.available() > 0) {
@@ -82,6 +155,9 @@ void loop() {
 
   // 检查震动
   checkVibration();
+  
+  // 保存数据到SD卡
+  saveData();
 
   display.clearDisplay();
   display.setCursor(0,0);
