@@ -181,7 +181,6 @@ void loop() {
   }
 
   if (gps.date.isValid() && gps.time.isValid()) {
-    display.print("Time: ");
     display.print(gps.date.year());
     display.print("-");
     if (gps.date.month() < 10) display.print("0");
