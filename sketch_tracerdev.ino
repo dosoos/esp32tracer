@@ -10,8 +10,8 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // GPS参数
-#define GPS_RX 17  // ESP32的RX引脚
-#define GPS_TX 16  // ESP32的TX引脚
+#define GPS_RX 16  // ESP32的RX引脚
+#define GPS_TX 17  // ESP32的TX引脚
 HardwareSerial gpsSerial(1);
 TinyGPSPlus gps;
 
