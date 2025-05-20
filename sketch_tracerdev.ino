@@ -67,17 +67,22 @@ void loop() {
   }
 
   if (gps.date.isValid() && gps.time.isValid()) {
-    display.print("Date: ");
+    display.print("Time: ");
     display.print(gps.date.year());
     display.print("-");
+    if (gps.date.month() < 10) display.print("0");
     display.print(gps.date.month());
     display.print("-");
-    display.println(gps.date.day());
-    display.print("Time: ");
+    if (gps.date.day() < 10) display.print("0");
+    display.print(gps.date.day());
+    display.print(" ");
+    if (gps.time.hour() < 10) display.print("0");
     display.print(gps.time.hour());
     display.print(":");
+    if (gps.time.minute() < 10) display.print("0");
     display.print(gps.time.minute());
     display.print(":");
+    if (gps.time.second() < 10) display.print("0");
     display.println(gps.time.second());
   }
 
