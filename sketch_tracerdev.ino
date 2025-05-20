@@ -23,6 +23,8 @@ TinyGPSPlus gps;
 int vibrationCount = 0;  // 震动计数
 unsigned long lastVibrationTime = 0;  // 上次震动时间
 int vibrationLevel = 0;  // 震动等级
+const unsigned long DEBOUNCE_TIME = 50;  // 防抖时间（毫秒）
+const unsigned long LEVEL_UPDATE_INTERVAL = 2000;  // 震动等级更新间隔（毫秒）
 
 // SD卡参数
 #define SD_CS 5    // SD卡CS引脚连接到GPIO5
@@ -33,6 +35,10 @@ File dataFile;
 bool sdCardAvailable = false;
 unsigned long lastSaveTime = 0;
 const unsigned long SAVE_INTERVAL = 1000;  // 每秒保存一次数据
+
+// 显示更新参数
+const unsigned long DISPLAY_UPDATE_INTERVAL = 1000;  // 显示更新间隔（毫秒）
+unsigned long lastDisplayUpdate = 0;  // 上次显示更新时间
 
 void setup() {
   Serial.begin(115200);
@@ -78,20 +84,24 @@ void checkVibration() {
   int vibrationValue = digitalRead(VIBRATION_PIN);
   unsigned long currentTime = millis();
   
-  // 检测到震动
-  if (vibrationValue == LOW) {  // 震动传感器在检测到震动时输出LOW
-    if (currentTime - lastVibrationTime > 100) {  // 防抖
+  // 检测到震动（HIGH表示检测到震动）
+  if (vibrationValue == HIGH) {
+    if (currentTime - lastVibrationTime > DEBOUNCE_TIME) {  // 防抖
       vibrationCount++;
       lastVibrationTime = currentTime;
+      Serial.print("Vibration detected! Count: ");
+      Serial.println(vibrationCount);
     }
   }
   
-  // 每5秒更新一次震动等级
+  // 定期更新震动等级
   static unsigned long lastLevelUpdate = 0;
-  if (currentTime - lastLevelUpdate > 5000) {
+  if (currentTime - lastLevelUpdate > LEVEL_UPDATE_INTERVAL) {
     vibrationLevel = vibrationCount;
-    vibrationCount = 0;
+    vibrationCount = 0;  // 重置计数
     lastLevelUpdate = currentTime;
+    Serial.print("Vibration level updated: ");
+    Serial.println(vibrationLevel);
   }
 }
 
@@ -150,54 +160,59 @@ void loop() {
 
   // 检查震动
   checkVibration();
+
+  // 非阻塞方式更新显示
+  unsigned long currentTime = millis();
+  if (currentTime - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
+    lastDisplayUpdate = currentTime;
   
-  // 保存数据到SD卡
-  saveData();
+    // 保存数据到SD卡
+    saveData();
+    
+    display.clearDisplay();
+    display.setCursor(0,0);
 
-  display.clearDisplay();
-  display.setCursor(0,0);
+    // 显示震动等级
+    display.print("Vibration: ");
+    display.println(vibrationLevel);
 
-  // 显示震动等级
-  display.print("Vibration: ");
-  display.println(vibrationLevel);
+    if (gps.location.isValid()) {
+      display.println("GPS Signal OK");
+      display.print("Lat: ");
+      display.println(gps.location.lat(), 6);
+      display.print("Lng: ");
+      display.println(gps.location.lng(), 6);
+      display.print("Alt: ");
+      display.print(gps.altitude.meters());
+      display.println("m");
+    } else {
+      display.println("Waiting for GPS...");
+      display.println("Please wait...");
+    }
 
-  if (gps.location.isValid()) {
-    display.println("GPS Signal OK");
-    display.print("Lat: ");
-    display.println(gps.location.lat(), 6);
-    display.print("Lng: ");
-    display.println(gps.location.lng(), 6);
-    display.print("Alt: ");
-    display.print(gps.altitude.meters());
-    display.println("m");
-  } else {
-    display.println("Waiting for GPS...");
-    display.println("Please wait...");
+    if (gps.date.isValid() && gps.time.isValid()) {
+      display.print(gps.date.year());
+      display.print("-");
+      if (gps.date.month() < 10) display.print("0");
+      display.print(gps.date.month());
+      display.print("-");
+      if (gps.date.day() < 10) display.print("0");
+      display.print(gps.date.day());
+      display.print(" ");
+      if (gps.time.hour() < 10) display.print("0");
+      display.print(gps.time.hour());
+      display.print(":");
+      if (gps.time.minute() < 10) display.print("0");
+      display.print(gps.time.minute());
+      display.print(":");
+      if (gps.time.second() < 10) display.print("0");
+      display.println(gps.time.second());
+    }
+
+    // 显示卫星数量
+    display.print("Satellites: ");
+    display.println(gps.satellites.value());
+
+    display.display();
   }
-
-  if (gps.date.isValid() && gps.time.isValid()) {
-    display.print(gps.date.year());
-    display.print("-");
-    if (gps.date.month() < 10) display.print("0");
-    display.print(gps.date.month());
-    display.print("-");
-    if (gps.date.day() < 10) display.print("0");
-    display.print(gps.date.day());
-    display.print(" ");
-    if (gps.time.hour() < 10) display.print("0");
-    display.print(gps.time.hour());
-    display.print(":");
-    if (gps.time.minute() < 10) display.print("0");
-    display.print(gps.time.minute());
-    display.print(":");
-    if (gps.time.second() < 10) display.print("0");
-    display.println(gps.time.second());
-  }
-
-  // 显示卫星数量
-  display.print("Satellites: ");
-  display.println(gps.satellites.value());
-
-  display.display();
-  delay(1000);
 }
