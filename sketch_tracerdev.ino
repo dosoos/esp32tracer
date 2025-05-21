@@ -35,7 +35,7 @@ const unsigned long LEVEL_UPDATE_INTERVAL = 2000;  // 震动等级更新间隔�
 File dataFile;
 bool sdCardAvailable = false;
 
-const unsigned long SAVE_INTERVAL = 10000;  // 每10秒保存一次数据
+const unsigned long SAVE_INTERVAL = 60000;  // 每10秒保存一次数据
 unsigned long lastSaveTime = 0;
 
 // 显示更新参数
