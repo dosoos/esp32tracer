@@ -4,6 +4,7 @@
 #include <TinyGPS++.h>
 #include <SD.h>
 #include <SPI.h>
+#include <esp_sleep.h>
 
 // OLED参数
 #define SCREEN_WIDTH 128
@@ -33,16 +34,26 @@ const unsigned long LEVEL_UPDATE_INTERVAL = 2000;  // 震动等级更新间隔�
 #define SD_SCK 18  // SD卡CLK引脚连接到GPIO18
 File dataFile;
 bool sdCardAvailable = false;
+
+const unsigned long SAVE_INTERVAL = 10000;  // 每10秒保存一次数据
 unsigned long lastSaveTime = 0;
-const unsigned long SAVE_INTERVAL = 1000;  // 每秒保存一次数据
 
 // 显示更新参数
-const unsigned long DISPLAY_UPDATE_INTERVAL = 1000;  // 显示更新间隔（毫秒）
+const unsigned long DISPLAY_UPDATE_INTERVAL = 5000;  // 显示每5秒更新一次
 unsigned long lastDisplayUpdate = 0;  // 上次显示更新时间
+
+// GPS更新参数
+const unsigned long GPS_UPDATE_INTERVAL = 5000;  // GPS每5秒更新一次
+unsigned long lastGPSUpdate = 0;  // 上次GPS更新时间
+
+// 电源管理参数
+const unsigned long SLEEP_CHECK_INTERVAL = 30000;  // 每30秒检查一次是否需要进入睡眠
+unsigned long lastSleepCheck = 0;  // 上次睡眠检查时间
+const unsigned long INACTIVITY_TIMEOUT = 300000;  // 5分钟无活动后进入睡眠
+unsigned long lastActivityTime = 0;  // 上次活动时间
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Starting GPS Test...");
   
   // 初始化GPS串口
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
@@ -78,6 +89,9 @@ void setup() {
   display.println("Initializing...");
   display.display();
   delay(2000);
+
+  // 初始化活动时间
+  lastActivityTime = millis();
 }
 
 void checkVibration() {
@@ -89,6 +103,7 @@ void checkVibration() {
     if (currentTime - lastVibrationTime > DEBOUNCE_TIME) {  // 防抖
       vibrationCount++;
       lastVibrationTime = currentTime;
+      lastActivityTime = currentTime;  // 更新活动时间
     }
   }
   
@@ -98,8 +113,6 @@ void checkVibration() {
     vibrationLevel = vibrationCount;
     vibrationCount = 0;  // 重置计数
     lastLevelUpdate = currentTime;
-    Serial.print("Vibration level updated: ");
-    Serial.println(vibrationLevel);
   }
 }
 
@@ -149,21 +162,55 @@ void saveData() {
   }
 }
 
+void checkSleep() {
+  unsigned long currentTime = millis();
+  if (currentTime - lastSleepCheck >= SLEEP_CHECK_INTERVAL) {
+    lastSleepCheck = currentTime;
+    
+    // 检查是否超过无活动时间
+    if (currentTime - lastActivityTime >= INACTIVITY_TIMEOUT) {
+      // 准备进入深度睡眠
+      display.clearDisplay();
+      display.setCursor(0,0);
+      display.println("Entering sleep mode...");
+      display.display();
+      delay(1000);
+      
+      // 关闭不需要的外设
+      display.clearDisplay();
+      display.display();
+      display.ssd1306_command(SSD1306_DISPLAYOFF);
+      
+      // 配置唤醒源（震动传感器）
+      esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
+      
+      // 进入深度睡眠
+      esp_deep_sleep_start();
+    }
+  }
+}
+
 void loop() {
-  // 读取GPS数据
-  while (gpsSerial.available() > 0) {
-    char c = gpsSerial.read();
-    gps.encode(c);
+  // 读取GPS数据（降低频率）
+  unsigned long currentTime = millis();
+  if (currentTime - lastGPSUpdate >= GPS_UPDATE_INTERVAL) {
+    lastGPSUpdate = currentTime;
+    while (gpsSerial.available() > 0) {
+      char c = gpsSerial.read();
+      gps.encode(c);
+    }
   }
 
   // 检查震动
   checkVibration();
+  
+  // 检查是否需要进入睡眠模式
+  checkSleep();
 
   // 非阻塞方式更新显示
-  unsigned long currentTime = millis();
   if (currentTime - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
     lastDisplayUpdate = currentTime;
-  
+   
     // 保存数据到SD卡
     saveData();
     
