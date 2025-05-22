@@ -41,7 +41,7 @@ const unsigned long LEVEL_UPDATE_INTERVAL = 2000;  // 震动等级更新间隔�
 File dataFile;
 bool sdCardAvailable = false;
 
-const unsigned long SAVE_INTERVAL = 60000;  // 每10秒保存一次数据
+const unsigned long SAVE_INTERVAL = 60000;  // 每60秒保存一次数据
 unsigned long lastSaveTime = 0;
 
 // 显示更新参数
@@ -192,18 +192,6 @@ void checkSleep() {
     
     // 检查是否超过无活动时间
     if (currentTime - lastActivityTime >= INACTIVITY_TIMEOUT) {
-      // 准备进入深度睡眠
-      display.clearDisplay();
-      display.setCursor(0,0);
-      display.println("Entering sleep mode...");
-      display.display();
-      delay(1000);
-      
-      // 关闭不需要的外设
-      display.clearDisplay();
-      display.display();
-      display.ssd1306_command(SSD1306_DISPLAYOFF);
-      
       // 配置唤醒源（震动传感器）
       esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
       
