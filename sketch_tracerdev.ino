@@ -60,6 +60,7 @@ unsigned long lastActivityTime = 0;  // 上次活动时间
 const unsigned long SLEEP_DURATION = 60000000;  // 睡眠时间60秒（微秒）
 
 // AHT10传感器参数
+#define ENABLE_AHT10 false  // 设置为false，因为传感器未连接
 Adafruit_AHTX0 aht;
 float temperature = 0;
 float humidity = 0;
@@ -77,10 +78,12 @@ void setup() {
       gps.encode(c);
     }
     
-    sensors_event_t humidity_event, temp_event;
-    if (aht.getEvent(&humidity_event, &temp_event)) {
-      temperature = temp_event.temperature;
-      humidity = humidity_event.relative_humidity;
+    if (ENABLE_AHT10) {
+      sensors_event_t humidity_event, temp_event;
+      if (aht.getEvent(&humidity_event, &temp_event)) {
+        temperature = temp_event.temperature;
+        humidity = humidity_event.relative_humidity;
+      }
     }
     
     saveData();
@@ -99,12 +102,23 @@ void setup() {
   pinMode(VIBRATION_PIN, INPUT);
   
   // 初始化SD卡
+  Serial.println("Initializing SD card...");
+  Serial.println("SPI pins: MOSI=" + String(SD_MOSI) + ", MISO=" + String(SD_MISO) + ", SCK=" + String(SD_SCK) + ", CS=" + String(SD_CS));
+  
+  // 配置SPI
   SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+  
+  // 初始化SD卡
   if(!SD.begin(SD_CS)) {
-    Serial.println("SD Card initialization failed!");
+    Serial.println("SD Card initialization failed after multiple attempts!");
+    Serial.println("Please check:");
+    Serial.println("1. SD card is properly inserted");
+    Serial.println("2. All connections are secure");
+    Serial.println("3. SD card module is powered (3.3V)");
+    Serial.println("4. SD card is formatted as FAT32");
     sdCardAvailable = false;
   } else {
-    Serial.println("SD Card initialized.");
+    Serial.println("SD Card initialized successfully.");
     sdCardAvailable = true;
   }
   
@@ -114,11 +128,15 @@ void setup() {
     for(;;);
   }
 
-  // 初始化AHT10传感器
-  if (!aht.begin()) {
-    Serial.println("Could not find AHT10 sensor!");
+  // 初始化AHT10传感器（仅在启用时）
+  if (ENABLE_AHT10) {
+    if (!aht.begin()) {
+      Serial.println("Could not find AHT10 sensor!");
+    } else {
+      Serial.println("AHT10 sensor initialized");
+    }
   } else {
-    Serial.println("AHT10 sensor initialized");
+    Serial.println("AHT10 sensor disabled");
   }
   
   // 清屏
@@ -257,10 +275,12 @@ void loop() {
     lastSaveTime = currentTime;
 
     // 更新温湿度数据
-    sensors_event_t humidity_event, temp_event;
-    if (aht.getEvent(&humidity_event, &temp_event)) {
-      temperature = temp_event.temperature;
-      humidity = humidity_event.relative_humidity;
+    if (ENABLE_AHT10) {
+      sensors_event_t humidity_event, temp_event;
+      if (aht.getEvent(&humidity_event, &temp_event)) {
+        temperature = temp_event.temperature;
+        humidity = humidity_event.relative_humidity;
+      }
     }
     
     // 保存数据到SD卡
