@@ -57,6 +57,7 @@ const unsigned long SLEEP_CHECK_INTERVAL = 30000;  // 每30秒检查一次是否
 unsigned long lastSleepCheck = 0;  // 上次睡眠检查时间
 const unsigned long INACTIVITY_TIMEOUT = 300000;  // 5分钟无活动后进入睡眠
 unsigned long lastActivityTime = 0;  // 上次活动时间
+const unsigned long SLEEP_DURATION = 60000000;  // 睡眠时间60秒（微秒）
 
 // AHT10传感器参数
 Adafruit_AHTX0 aht;
@@ -65,6 +66,30 @@ float humidity = 0;
 
 void setup() {
   Serial.begin(115200);
+  
+  // 检查是否是唤醒后的启动
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+  
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
+    // 如果是定时器唤醒，立即采集并保存数据
+    while (gpsSerial.available() > 0) {
+      char c = gpsSerial.read();
+      gps.encode(c);
+    }
+    
+    sensors_event_t humidity_event, temp_event;
+    if (aht.getEvent(&humidity_event, &temp_event)) {
+      temperature = temp_event.temperature;
+      humidity = humidity_event.relative_humidity;
+    }
+    
+    saveData();
+    
+    // 重新进入睡眠
+    esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
+    esp_deep_sleep_start();
+  }
   
   // 初始化GPS串口
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
@@ -192,7 +217,11 @@ void checkSleep() {
     
     // 检查是否超过无活动时间
     if (currentTime - lastActivityTime >= INACTIVITY_TIMEOUT) {
-      // 配置唤醒源（震动传感器）
+      
+      // 配置定时器唤醒
+      esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
+      
+      // 配置震动传感器唤醒
       esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
       
       // 进入深度睡眠
@@ -222,9 +251,6 @@ void loop() {
 
   // 检查震动
   checkVibration();
-  
-  // 检查是否需要进入睡眠模式
-  checkSleep();
 
   // 定期保存数据到SD卡
   if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
@@ -240,6 +266,9 @@ void loop() {
     // 保存数据到SD卡
     saveData();
   }
+  
+  // 检查是否需要进入睡眠模式
+  checkSleep();
 
   // 只在显示激活时更新显示
   if (displayActive && currentTime - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
