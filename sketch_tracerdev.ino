@@ -280,7 +280,7 @@ void loop() {
     // 显示温湿度
     display.print("T: ");
     display.print(temperature, 1);
-    display.print("°C");
+    display.print("C  ");
     display.print("H: ");
     display.print(humidity, 1);
     display.println("%");
