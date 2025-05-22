@@ -13,6 +13,11 @@
 #define OLED_RESET    -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+// 显示超时参数
+const unsigned long DISPLAY_TIMEOUT = 300000;  // 5分钟后关闭显示
+unsigned long displayStartTime = 0;  // 显示开始时间
+bool displayActive = true;  // 显示状态标志
+
 // GPS参数
 #define GPS_RX 16  // ESP32的RX引脚
 #define GPS_TX 17  // ESP32的TX引脚
@@ -101,7 +106,10 @@ void setup() {
   display.println("GPS Tracker");
   display.println("Initializing...");
   display.display();
-  delay(2000);
+  
+  // 记录显示开始时间
+  displayStartTime = millis();
+  displayActive = true;
 
   // 初始化活动时间
   lastActivityTime = millis();
@@ -206,6 +214,14 @@ void checkSleep() {
 }
 
 void loop() {
+  // 检查显示超时
+  if (displayActive && (millis() - displayStartTime >= DISPLAY_TIMEOUT)) {
+    display.clearDisplay();
+    display.display();
+    display.ssd1306_command(SSD1306_DISPLAYOFF);
+    displayActive = false;
+  }
+
   // 读取GPS数据（降低频率）
   unsigned long currentTime = millis();
   if (currentTime - lastGPSUpdate >= GPS_UPDATE_INTERVAL) {
@@ -222,9 +238,9 @@ void loop() {
   // 检查是否需要进入睡眠模式
   checkSleep();
 
-  // 非阻塞方式更新显示
-  if (currentTime - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
-    lastDisplayUpdate = currentTime;
+  // 定期保存数据到SD卡
+  if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
+    lastSaveTime = currentTime;
 
     // 更新温湿度数据
     sensors_event_t humidity_event, temp_event;
@@ -232,9 +248,14 @@ void loop() {
       temperature = temp_event.temperature;
       humidity = humidity_event.relative_humidity;
     }
-   
+    
     // 保存数据到SD卡
     saveData();
+  }
+
+  // 只在显示激活时更新显示
+  if (displayActive && currentTime - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
+    lastDisplayUpdate = currentTime;
     
     display.clearDisplay();
     display.setCursor(0,0);
