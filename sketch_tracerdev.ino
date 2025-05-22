@@ -144,7 +144,7 @@ void saveData() {
   if(!SD.exists(fileName)) {
     dataFile = SD.open(fileName, FILE_WRITE);
     if(dataFile) {
-      dataFile.println("Time,Latitude,Longitude,Altitude,Satellites,Vibration");
+      dataFile.println("Time,Latitude,Longitude,Altitude,Satellites,Vibration,Temperature,Humidity");
       dataFile.close();
     }
   }
@@ -168,7 +168,9 @@ void saveData() {
                  String(gps.location.lng(), 6) + "," +
                  String(gps.altitude.meters()) + "," +
                  String(gps.satellites.value()) + "," +
-                 String(vibrationLevel);
+                 String(vibrationLevel) + "," +
+                 String(temperature) + "," +
+                 String(humidity);
     
     dataFile.println(dataString);
     dataFile.close();
