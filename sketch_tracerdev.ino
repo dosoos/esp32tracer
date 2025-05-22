@@ -226,6 +226,7 @@ void loop() {
   if (currentTime - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
     lastDisplayUpdate = currentTime;
 
+    // 更新温湿度数据
     sensors_event_t humidity_event, temp_event;
     if (aht.getEvent(&humidity_event, &temp_event)) {
       temperature = temp_event.temperature;
