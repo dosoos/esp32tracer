@@ -5,6 +5,7 @@
 #include <SD.h>
 #include <SPI.h>
 #include <esp_sleep.h>
+#include <Adafruit_AHTX0.h>  // AHT10传感器库
 
 // OLED参数
 #define SCREEN_WIDTH 128
@@ -52,6 +53,11 @@ unsigned long lastSleepCheck = 0;  // 上次睡眠检查时间
 const unsigned long INACTIVITY_TIMEOUT = 300000;  // 5分钟无活动后进入睡眠
 unsigned long lastActivityTime = 0;  // 上次活动时间
 
+// AHT10传感器参数
+Adafruit_AHTX0 aht;
+float temperature = 0;
+float humidity = 0;
+
 void setup() {
   Serial.begin(115200);
   
@@ -76,6 +82,13 @@ void setup() {
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
+  }
+
+  // 初始化AHT10传感器
+  if (!aht.begin()) {
+    Serial.println("Could not find AHT10 sensor!");
+  } else {
+    Serial.println("AHT10 sensor initialized");
   }
   
   // 清屏
@@ -210,12 +223,26 @@ void loop() {
   // 非阻塞方式更新显示
   if (currentTime - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL) {
     lastDisplayUpdate = currentTime;
+
+    sensors_event_t humidity_event, temp_event;
+    if (aht.getEvent(&humidity_event, &temp_event)) {
+      temperature = temp_event.temperature;
+      humidity = humidity_event.relative_humidity;
+    }
    
     // 保存数据到SD卡
     saveData();
     
     display.clearDisplay();
     display.setCursor(0,0);
+
+    // 显示温湿度
+    display.print("T: ");
+    display.print(temperature, 1);
+    display.println("C");
+    display.print("H: ");
+    display.print(humidity, 1);
+    display.println("%");
 
     // 显示震动等级
     display.print("Vibration: ");
