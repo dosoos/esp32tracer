@@ -270,9 +270,15 @@ void loop() {
   unsigned long currentTime = millis();
   if (currentTime - lastGPSUpdate >= GPS_UPDATE_INTERVAL) {
     lastGPSUpdate = currentTime;
+    String nmeaSentence = "";
     while (gpsSerial.available() > 0) {
       char c = gpsSerial.read();
-      Serial.println(c);
+      if (c == '\n') {
+        Serial.println(nmeaSentence);  // 打印完整的NMEA语句
+        nmeaSentence = "";
+      } else if (c != '\r') {
+        nmeaSentence += c;
+      }
       gps.encode(c);
     }
   }
