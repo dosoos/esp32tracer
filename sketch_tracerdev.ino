@@ -103,8 +103,7 @@ void setup() {
   
   // 初始化SD卡
   Serial.println("Initializing SD card...");
-  Serial.println("SPI pins: MOSI=" + String(SD_MOSI) + ", MISO=" + String(SD_MISO) + ", SCK=" + String(SD_SCK) + ", CS=" + String(SD_CS));
-  
+
   // 配置SPI
   SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   
