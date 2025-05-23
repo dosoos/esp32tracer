@@ -221,7 +221,7 @@ void saveData() {
 
   unsigned long currentTime = millis();
   if (currentTime - lastSaveTime < SAVE_INTERVAL) {
-    Serial.println("Save interval not reached, " + String(currentTime - lastSaveTime) + "ms");
+    Serial.println("Save interval not reached, " + String(currentTime) + " - " + String(lastSaveTime) + " = " + String(currentTime - lastSaveTime) + "ms");
     return;
   }
   lastSaveTime = currentTime;
