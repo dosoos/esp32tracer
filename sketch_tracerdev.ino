@@ -272,6 +272,7 @@ void loop() {
     lastGPSUpdate = currentTime;
     while (gpsSerial.available() > 0) {
       char c = gpsSerial.read();
+      Serial.println(c);
       gps.encode(c);
     }
   }
