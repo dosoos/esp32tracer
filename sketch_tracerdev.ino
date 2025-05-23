@@ -73,11 +73,14 @@ void setup() {
   
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
     // 如果是定时器唤醒，立即采集并保存数据
+
+    // 读取GPS数据
     while (gpsSerial.available() > 0) {
       char c = gpsSerial.read();
       gps.encode(c);
     }
     
+    // 读取温湿度数据
     if (ENABLE_AHT10) {
       sensors_event_t humidity_event, temp_event;
       if (aht.getEvent(&humidity_event, &temp_event)) {
@@ -86,6 +89,7 @@ void setup() {
       }
     }
     
+    // 保存数据
     saveData();
     
     // 重新进入睡眠
@@ -301,6 +305,8 @@ void saveData() {
     // 只有在成功保存数据后才更新lastSaveTime
     lastSaveTime = currentTime;
   } else {
+    // 如果保存失败，延迟1秒后重试
+    lastSaveTime = currentTime - SAVE_INTERVAL + 1000;
     Serial.println("Error writing data!");
   }
   
@@ -353,7 +359,6 @@ void loop() {
 
   // 定期保存数据到SD卡
   if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
-    lastSaveTime = currentTime;
 
     // 更新温湿度数据
     if (ENABLE_AHT10) {
