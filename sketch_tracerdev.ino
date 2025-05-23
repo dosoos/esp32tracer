@@ -181,8 +181,10 @@ void checkVibration() {
 }
 
 void saveData() {
+  Serial.println("Saving data...");
   if (!sdCardAvailable || !gps.location.isValid()) return;
-  
+  Serial.println("SD Card available and GPS location is valid");
+
   unsigned long currentTime = millis();
   if (currentTime - lastSaveTime < SAVE_INTERVAL) return;
   lastSaveTime = currentTime;
@@ -193,8 +195,10 @@ void saveData() {
   
   // 如果文件不存在，创建文件并写入表头
   if(!SD.exists(fileName)) {
+    Serial.println("File does not exist, creating file...");
     dataFile = SD.open(fileName, FILE_WRITE);
     if(dataFile) {
+      Serial.println("File created successfully");
       dataFile.println("Time,Latitude,Longitude,Altitude,Satellites,Vibration,Temperature,Humidity");
       dataFile.close();
     }
@@ -202,6 +206,7 @@ void saveData() {
   
   dataFile = SD.open(fileName, FILE_APPEND);
   if (dataFile) {
+    Serial.println("File opened successfully");
     // 构建CSV行
     String dataString = "";
     
@@ -218,13 +223,18 @@ void saveData() {
     dataString += String(gps.location.lat(), 6) + "," +
                  String(gps.location.lng(), 6) + "," +
                  String(gps.altitude.meters()) + "," +
-                 String(gps.satellites.value()) + "," +
-                 String(vibrationLevel) + "," +
-                 String(temperature) + "," +
+                 String(gps.satellites.value()) + ",";
+
+    // 震动等级
+    dataString += String(vibrationLevel) + ",";
+
+    // 温湿度
+    dataString += String(temperature) + "," +
                  String(humidity);
     
     dataFile.println(dataString);
     dataFile.close();
+    Serial.println("Data saved successfully");
   }
 }
 
