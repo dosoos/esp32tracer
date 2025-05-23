@@ -193,15 +193,30 @@ void saveData() {
   }
   
   // 修改保存条件：只要有SD卡就保存，即使GPS数据不完整
-  if (!sdCardAvailable) return;
+  if (!sdCardAvailable) {
+    Serial.println("SD Card not available, skipping save");
+    return;
+  }
 
   unsigned long currentTime = millis();
-  if (currentTime - lastSaveTime < SAVE_INTERVAL) return;
+  if (currentTime - lastSaveTime < SAVE_INTERVAL) {
+    Serial.println("Save interval not reached, skipping save");
+    return;
+  }
   lastSaveTime = currentTime;
   
-  String fileName = "/data_" + String(gps.date.year()) + 
-                   String(gps.date.month()) + 
-                   String(gps.date.day()) + ".csv";
+  // 构建文件名
+  String fileName = "/data_";
+  if (gps.date.isValid()) {
+    fileName += String(gps.date.year()) + 
+               String(gps.date.month()) + 
+               String(gps.date.day());
+  } else {
+    fileName += "unknown";
+  }
+  fileName += ".csv";
+  
+  Serial.println("Attempting to save to file: " + fileName);
   
   // 如果文件不存在，创建文件并写入表头
   if(!SD.exists(fileName)) {
@@ -211,47 +226,62 @@ void saveData() {
       Serial.println("File created successfully");
       dataFile.println("Time,Latitude,Longitude,Altitude,Satellites,Vibration,Temperature,Humidity");
       dataFile.close();
+    } else {
+      Serial.println("Error creating file!");
+      return;
     }
   }
   
+  // 打开文件进行追加
   dataFile = SD.open(fileName, FILE_APPEND);
-  if (dataFile) {
-    Serial.println("File opened successfully");
-    // 构建CSV行
-    String dataString = "";
-    
-    // 时间
-    if (gps.time.isValid()) {
-      dataString += String(gps.time.hour()) + ":" +
-                   String(gps.time.minute()) + ":" +
-                   String(gps.time.second()) + ",";
-    } else {
-      dataString += "N/A,";
-    }
-    
-    // 位置数据
-    if (gps.location.isValid()) {
-      dataString += String(gps.location.lat(), 6) + "," +
-                   String(gps.location.lng(), 6) + "," +
-                   String(gps.altitude.meters()) + ",";
-    } else {
-      dataString += "N/A,N/A,N/A,";
-    }
-
-    // 卫星数量
-    dataString += String(gps.satellites.value()) + ",";
-
-    // 震动等级
-    dataString += String(vibrationLevel) + ",";
-
-    // 温湿度
-    dataString += String(temperature) + "," +
-                 String(humidity);
-    
-    dataFile.println(dataString);
-    dataFile.close();
-    Serial.println("Data saved successfully");
+  if (!dataFile) {
+    Serial.println("Error opening file for append!");
+    return;
   }
+  
+  Serial.println("File opened successfully");
+  
+  // 构建CSV行
+  String dataString = "";
+  
+  // 时间
+  if (gps.time.isValid()) {
+    dataString += String(gps.time.hour()) + ":" +
+                 String(gps.time.minute()) + ":" +
+                 String(gps.time.second()) + ",";
+  } else {
+    dataString += "N/A,";
+  }
+  
+  // 位置数据
+  if (gps.location.isValid()) {
+    dataString += String(gps.location.lat(), 6) + "," +
+                 String(gps.location.lng(), 6) + "," +
+                 String(gps.altitude.meters()) + ",";
+  } else {
+    dataString += "N/A,N/A,N/A,";
+  }
+
+  // 卫星数量
+  dataString += String(gps.satellites.value()) + ",";
+
+  // 震动等级
+  dataString += String(vibrationLevel) + ",";
+
+  // 温湿度
+  dataString += String(temperature) + "," +
+               String(humidity);
+  
+  // 写入数据
+  if (dataFile.println(dataString)) {
+    Serial.println("Data written successfully");
+  } else {
+    Serial.println("Error writing data!");
+  }
+  
+  // 确保文件被正确关闭
+  dataFile.close();
+  Serial.println("File closed");
 }
 
 void checkSleep() {
