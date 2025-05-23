@@ -305,8 +305,6 @@ void saveData() {
     // 只有在成功保存数据后才更新lastSaveTime
     lastSaveTime = currentTime;
   } else {
-    // 如果保存失败，延迟1秒后重试
-    lastSaveTime = currentTime - SAVE_INTERVAL + 1000;
     Serial.println("Error writing data!");
   }
   
