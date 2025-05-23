@@ -181,8 +181,8 @@ void checkVibration() {
 
 void saveData() {
   Serial.println("Saving data...");
+  Serial.println("SD Card available: " + String(sdCardAvailable) + " and GPS location is valid: " + String(gps.location.isValid()));
   if (!sdCardAvailable || !gps.location.isValid()) return;
-  Serial.println("SD Card available and GPS location is valid");
 
   unsigned long currentTime = millis();
   if (currentTime - lastSaveTime < SAVE_INTERVAL) return;
