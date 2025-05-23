@@ -184,8 +184,29 @@ void saveData() {
   Serial.println("SD Card available: " + String(sdCardAvailable));
   Serial.println("GPS Status:");
   Serial.println("- Location valid: " + String(gps.location.isValid()));
-  Serial.println("- Date valid: " + gps.date.isValid() ? gps.date.year() + "-" + gps.date.month() + "-" + gps.date.day() : "Invalid");
-  Serial.println("- Time valid: " + gps.time.isValid() ? gps.time.hour() + ":" + gps.time.minute() + ":" + gps.time.second() : "Invalid");
+  
+  // 修复日期显示
+  String dateStr = "- Date valid: ";
+  if (gps.date.isValid()) {
+    dateStr += String(gps.date.year()) + "-" + 
+               String(gps.date.month()) + "-" + 
+               String(gps.date.day());
+  } else {
+    dateStr += "Invalid";
+  }
+  Serial.println(dateStr);
+  
+  // 修复时间显示
+  String timeStr = "- Time valid: ";
+  if (gps.time.isValid()) {
+    timeStr += String(gps.time.hour()) + ":" + 
+               String(gps.time.minute()) + ":" + 
+               String(gps.time.second());
+  } else {
+    timeStr += "Invalid";
+  }
+  Serial.println(timeStr);
+  
   Serial.println("- Satellites: " + String(gps.satellites.value()));
   if (gps.location.isValid()) {
     Serial.println("- Latitude: " + String(gps.location.lat(), 6));
