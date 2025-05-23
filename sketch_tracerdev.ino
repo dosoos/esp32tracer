@@ -220,12 +220,14 @@ void saveData() {
   }
 
   unsigned long currentTime = millis();
-  if (currentTime - lastSaveTime < SAVE_INTERVAL) {
-    Serial.println("Save interval not reached, " + String(currentTime) + " - " + String(lastSaveTime) + " = " + String(currentTime - lastSaveTime) + "ms");
+  unsigned long timeSinceLastSave = currentTime - lastSaveTime;
+  Serial.println("Time since last save: " + String(currentTime) + " - " + String(lastSaveTime) + " = " + String(timeSinceLastSave) + "ms");
+  
+  if (timeSinceLastSave < SAVE_INTERVAL) {
+    Serial.println("Save interval not reached, waiting " + String(SAVE_INTERVAL - timeSinceLastSave) + "ms more");
     return;
   }
-  lastSaveTime = currentTime;
-  
+
   // 构建文件名
   String fileName = "/data_";
   if (gps.date.isValid()) {
@@ -296,6 +298,8 @@ void saveData() {
   // 写入数据
   if (dataFile.println(dataString)) {
     Serial.println("Data written successfully");
+    // 只有在成功保存数据后才更新lastSaveTime
+    lastSaveTime = currentTime;
   } else {
     Serial.println("Error writing data!");
   }
