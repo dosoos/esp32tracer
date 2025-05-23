@@ -184,8 +184,8 @@ void saveData() {
   Serial.println("SD Card available: " + String(sdCardAvailable));
   Serial.println("GPS Status:");
   Serial.println("- Location valid: " + String(gps.location.isValid()));
-  Serial.println("- Date valid: " + String(gps.date.isValid()));
-  Serial.println("- Time valid: " + String(gps.time.isValid()));
+  Serial.println("- Date valid: " + gps.date.isValid() ? gps.date.year() + "-" + gps.date.month() + "-" + gps.date.day() : "Invalid");
+  Serial.println("- Time valid: " + gps.time.isValid() ? gps.time.hour() + ":" + gps.time.minute() + ":" + gps.time.second() : "Invalid");
   Serial.println("- Satellites: " + String(gps.satellites.value()));
   if (gps.location.isValid()) {
     Serial.println("- Latitude: " + String(gps.location.lat(), 6));
