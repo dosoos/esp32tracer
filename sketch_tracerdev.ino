@@ -181,8 +181,19 @@ void checkVibration() {
 
 void saveData() {
   Serial.println("Saving data...");
-  Serial.println("SD Card available: " + String(sdCardAvailable) + " and GPS location is valid: " + String(gps.location.isValid()));
-  if (!sdCardAvailable || !gps.location.isValid()) return;
+  Serial.println("SD Card available: " + String(sdCardAvailable));
+  Serial.println("GPS Status:");
+  Serial.println("- Location valid: " + String(gps.location.isValid()));
+  Serial.println("- Date valid: " + String(gps.date.isValid()));
+  Serial.println("- Time valid: " + String(gps.time.isValid()));
+  Serial.println("- Satellites: " + String(gps.satellites.value()));
+  if (gps.location.isValid()) {
+    Serial.println("- Latitude: " + String(gps.location.lat(), 6));
+    Serial.println("- Longitude: " + String(gps.location.lng(), 6));
+  }
+  
+  // 修改保存条件：只要有SD卡就保存，即使GPS数据不完整
+  if (!sdCardAvailable) return;
 
   unsigned long currentTime = millis();
   if (currentTime - lastSaveTime < SAVE_INTERVAL) return;
@@ -219,10 +230,16 @@ void saveData() {
     }
     
     // 位置数据
-    dataString += String(gps.location.lat(), 6) + "," +
-                 String(gps.location.lng(), 6) + "," +
-                 String(gps.altitude.meters()) + "," +
-                 String(gps.satellites.value()) + ",";
+    if (gps.location.isValid()) {
+      dataString += String(gps.location.lat(), 6) + "," +
+                   String(gps.location.lng(), 6) + "," +
+                   String(gps.altitude.meters()) + ",";
+    } else {
+      dataString += "N/A,N/A,N/A,";
+    }
+
+    // 卫星数量
+    dataString += String(gps.satellites.value()) + ",";
 
     // 震动等级
     dataString += String(vibrationLevel) + ",";
