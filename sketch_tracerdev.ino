@@ -200,7 +200,7 @@ void saveData() {
 
   unsigned long currentTime = millis();
   if (currentTime - lastSaveTime < SAVE_INTERVAL) {
-    Serial.println("Save interval not reached, skipping save");
+    Serial.println("Save interval not reached, " + String(currentTime - lastSaveTime) + "ms");
     return;
   }
   lastSaveTime = currentTime;
@@ -365,12 +365,22 @@ void loop() {
     display.print("Vibration: ");
     display.println(vibrationLevel);
 
+    // 显示GPS状态
+    display.print("GPS: ");
+    display.println(gps.location.isValid() ? "OK" : "Searching");
+    display.print("Sats: ");
+    display.println(gps.satellites.value());
+
     if (gps.location.isValid()) {
-      display.println("GPS Signal OK");
+      // 显示纬度
       display.print("Lat: ");
       display.println(gps.location.lat(), 6);
+
+      // 显示经度
       display.print("Lng: ");
       display.println(gps.location.lng(), 6);
+
+      // 显示海拔高度
       display.print("Alt: ");
       display.print(gps.altitude.meters());
       display.println("m");
@@ -397,10 +407,6 @@ void loop() {
       if (gps.time.second() < 10) display.print("0");
       display.println(gps.time.second());
     }
-
-    // 显示卫星数量
-    display.print("Satellites: ");
-    display.println(gps.satellites.value());
 
     display.display();
   }
