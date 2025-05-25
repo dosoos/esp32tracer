@@ -60,7 +60,7 @@ unsigned long lastActivityTime = 0;  // 上次活动时间
 const unsigned long SLEEP_DURATION = 60000000;  // 睡眠时间60秒（微秒）
 
 // AHT10传感器参数
-#define ENABLE_AHT10 false  // 设置为false，因为传感器未连接
+#define ENABLE_AHT10 true  // 设置为false，因为传感器未连接
 Adafruit_AHTX0 aht;
 float temperature = 0;
 float humidity = 0;
