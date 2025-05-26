@@ -273,7 +273,10 @@ void saveData() {
   
   // 时间
   if (gps.time.isValid()) {
-    dataString += String(gps.time.hour()) + ":" +
+    dataString += String(gps.date.year()) + "-" +
+               String(gps.date.month()) + "-" +
+               String(gps.date.day()) + " " +
+               String(gps.time.hour()) + ":" +
                  String(gps.time.minute()) + ":" +
                  String(gps.time.second()) + ",";
   } else {
