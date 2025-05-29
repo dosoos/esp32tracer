@@ -400,20 +400,6 @@ void saveData() {
   Serial.println("Vibration level: " + String(sysState.vibrationLevel));
 
   Serial.println("Saving data...");
-  Serial.println("SD Card available: " + String(sdCardAvailable));
-  
-  // 检查GPS数据
-  bool gpsValid = isGPSDataValid();
-  Serial.println("- GPS valid: " + String(gpsValid));
-  Serial.println("- Satellites: " + String(gps.satellites.value()));
-  
-  if (gpsValid) {
-    Serial.println("- Latitude: " + String(gps.location.lat(), 6));
-    Serial.println("- Longitude: " + String(gps.location.lng(), 6));
-  } else {
-    Serial.println("- Latitude: N/A");
-    Serial.println("- Longitude: N/A");
-  }
   
   // 检查SD卡
   if (!sdCardAvailable) {
@@ -461,8 +447,6 @@ void saveData() {
     return;
   }
   
-  Serial.println("File opened successfully");
-  
   // 构建CSV行
   String dataString = getCurrentTimeString() + ",";
   
@@ -495,7 +479,6 @@ void saveData() {
   
   // 确保文件被正确关闭
   dataFile.close();
-  Serial.println("File closed");
 }
 
 // 检查睡眠
@@ -537,9 +520,10 @@ void loop() {
     updateGPSData();
     
     // 调试GPS状态
-    Serial.println("Update GPS Status after " + String(intervalSeconds) + " s");
+    Serial.println("Update GPS Status:");
     Serial.println("- Valid: " + String(isGPSDataValid()));
     Serial.println("- Satellites: " + String(gps.satellites.value()));
+    Serial.println("- Altitude: " + String(gps.altitude.meters()));
     if (isGPSDataValid()) {
       Serial.println("- Latitude: " + String(gps.location.lat(), 6));
       Serial.println("- Longitude: " + String(gps.location.lng(), 6));
@@ -557,7 +541,7 @@ void loop() {
     sysState.lastAHTUpdate = currentTime;
     sensors_event_t humidity_event, temp_event;
     if (aht.getEvent(&humidity_event, &temp_event)) {
-      Serial.println("Update AHT10 Status after " + String(intervalSeconds) + " s");
+      Serial.println("Update AHT10 Status:");
       Serial.println("- Temperature: " + String(temp_event.temperature));
       Serial.println("- Humidity: " + String(humidity_event.relative_humidity));
       sysState.temperature = temp_event.temperature;
