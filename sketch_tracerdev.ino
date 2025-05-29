@@ -46,7 +46,7 @@ const unsigned long SAVE_INTERVAL = 60000;  // 每60秒保存一次数据
 const unsigned long DISPLAY_UPDATE_INTERVAL = 5000;  // 显示每5秒更新一次
 
 // GPS更新参数
-const unsigned long GPS_UPDATE_INTERVAL = 5000;  // GPS每5秒更新一次
+const unsigned long GPS_UPDATE_INTERVAL = 10000;  // GPS每10秒更新一次
 
 // 电源管理参数
 const unsigned long SLEEP_CHECK_INTERVAL = 30000;  // 每30秒检查一次是否需要进入睡眠
@@ -54,7 +54,7 @@ const unsigned long INACTIVITY_TIMEOUT = 300000;  // 5分钟无活动后进入�
 const unsigned long SLEEP_DURATION = 60000000;  // 睡眠时间60秒（微秒）
 
 // AHT10传感器参数
-#define AHT10_AVAILABLE true  // 设置为false，因为传感器未连接
+#define AHT10_AVAILABLE false  // 设置为false，因为传感器未初始化
 Adafruit_AHTX0 aht;
 const unsigned long AHT_UPDATE_INTERVAL = 5000;  // AHT每5秒更新一次
 
@@ -283,6 +283,7 @@ void setup() {
   
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
     // 如果是定时器唤醒，立即采集并保存数据
+    Serial.println("Wakeup by timer at " + getCurrentTimeString());
 
     // 读取GPS数据
     while (gpsSerial.available() > 0) {
@@ -322,7 +323,10 @@ void setup() {
   SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   
   // 初始化SD卡
-  if(!SD.begin(SD_CS)) {
+  if(SD.begin(SD_CS)) {
+    Serial.println("SD Card initialized successfully.");
+    sdCardAvailable = true;
+  } else {
     Serial.println("SD Card initialization failed after multiple attempts!");
     Serial.println("Please check:");
     Serial.println("1. SD card is properly inserted");
@@ -330,9 +334,6 @@ void setup() {
     Serial.println("3. SD card module is powered (3.3V)");
     Serial.println("4. SD card is formatted as FAT32");
     sdCardAvailable = false;
-  } else {
-    Serial.println("SD Card initialized successfully.");
-    sdCardAvailable = true;
   }
   
   // 初始化OLED
@@ -341,15 +342,13 @@ void setup() {
     for(;;);
   }
 
-  // 初始化AHT10传感器（仅在启用时）
-  if (AHT10_AVAILABLE) {
-    if (!aht.begin()) {
-      Serial.println("Could not find AHT10 sensor!");
-    } else {
-      Serial.println("AHT10 sensor initialized");
-    }
+  // 初始化AHT10传感器
+  if (aht.begin()) {
+    Serial.println("AHT10 sensor initialized");
+    AHT10_AVAILABLE = true;
   } else {
-    Serial.println("AHT10 sensor disabled");
+    Serial.println("Could not find AHT10 sensor!");
+    AHT10_AVAILABLE = false;
   }
   
   // 清屏
@@ -494,6 +493,7 @@ void saveData() {
   Serial.println("File closed");
 }
 
+// 检查睡眠
 void checkSleep() {
   unsigned long currentTime = millis();
   if (currentTime - sysState.lastSleepCheck >= SLEEP_CHECK_INTERVAL) {
@@ -546,14 +546,15 @@ void loop() {
     }
   }
   
-  // 更新系统时钟 - 每次循环都更新
-  updateSystemTime();
-  
   // 读取温湿度数据(降低频率)
   if (AHT10_AVAILABLE && currentTime - sysState.lastAHTUpdate >= AHT_UPDATE_INTERVAL) {
+    int intervalSeconds = (currentTime - sysState.lastAHTUpdate)/1000;
     sysState.lastAHTUpdate = currentTime;
     sensors_event_t humidity_event, temp_event;
     if (aht.getEvent(&humidity_event, &temp_event)) {
+      Serial.println("Update AHT10 Status after " + String(intervalSeconds) + " s");
+      Serial.println("- Temperature: " + String(temp_event.temperature));
+      Serial.println("- Humidity: " + String(humidity_event.relative_humidity));
       sysState.temperature = temp_event.temperature;
       sysState.humidity = humidity_event.relative_humidity;
     }
@@ -561,6 +562,9 @@ void loop() {
   
   // 检查震动
   checkVibration();
+
+  // 更新系统时钟 - 每次循环都更新
+  updateSystemTime();
   
   // 定期保存数据到SD卡
   saveData();
