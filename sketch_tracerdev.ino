@@ -206,20 +206,28 @@ void updateSystemTime() {
   Serial.println("Current system time: " + getCurrentTimeString());
 
   unsigned long currentMillis = millis();
-  unsigned long elapsedMillis = currentMillis - sysTime.lastSyncMillis;
-
-  // 间隔秒数
-  int intervalSeconds = elapsedMillis / 1000;
-  Serial.println("Interval seconds: " + String(intervalSeconds));
-
-  // 更新秒数
-  sysTime.second += intervalSeconds;
-  sysTime.lastSyncMillis = currentMillis;
   
-  handleTimeOverflow();
+  // 计算实际经过的毫秒数
+  unsigned long elapsedMillis = currentMillis - sysTime.lastSyncMillis;
+  
+  // 转换为秒数
+  int elapsedSeconds = elapsedMillis / 1000;
+  
+  if (elapsedSeconds > 0) {
+    sysTime.lastSyncMillis = currentMillis;
+    Serial.println("Current time: " + getCurrentTimeString());
 
-  // 更新后打印系统时间
-  Serial.println("Updated system time: " + getCurrentTimeString());
+    // 更新秒数
+    sysTime.second += elapsedSeconds;
+    
+    // 处理时间进位
+    handleTimeOverflow();
+
+    Serial.println("Interval seconds: " + String(elapsedSeconds));
+    
+    // 调试信息
+    Serial.println("After process update: " + getCurrentTimeString());
+  }
 }
 
 // 获取当前时间字符串
@@ -526,11 +534,23 @@ void loop() {
     sysState.lastGPSUpdate = currentTime;
     updateGPSData();
     
+    // 调试GPS状态
+    Serial.println("GPS Status:");
+    Serial.println("- Valid: " + String(isGPSDataValid()));
+    Serial.println("- Satellites: " + String(gps.satellites.value()));
+    if (isGPSDataValid()) {
+      Serial.println("- Latitude: " + String(gps.location.lat(), 6));
+      Serial.println("- Longitude: " + String(gps.location.lng(), 6));
+    }
+    
     // 尝试同步时间
     if (!sysTime.isSynced || (currentTime - sysTime.lastSyncMillis > 3600000)) {  // 每小时尝试同步一次
       syncTimeWithGPS();
     }
   }
+  
+  // 更新系统时钟 - 每次循环都更新
+  updateSystemTime();
   
   // 读取温湿度数据(降低频率)
   if (AHT10_AVAILABLE && currentTime - sysState.lastAHTUpdate >= AHT_UPDATE_INTERVAL) {
@@ -544,9 +564,6 @@ void loop() {
   
   // 检查震动
   checkVibration();
-  
-  // 更新系统时钟
-  updateSystemTime();
   
   // 定期保存数据到SD卡
   saveData();
