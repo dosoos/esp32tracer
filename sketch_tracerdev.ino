@@ -54,7 +54,7 @@ const unsigned long INACTIVITY_TIMEOUT = 300000;  // 5分钟无活动后进入�
 const unsigned long SLEEP_DURATION = 60000000;  // 睡眠时间60秒（微秒）
 
 // AHT10传感器参数
-#define AHT10_AVAILABLE false  // 设置为false，因为传感器未初始化
+bool AHT10_AVAILABLE = false;  // 设置为false，因为传感器未初始化
 Adafruit_AHTX0 aht;
 const unsigned long AHT_UPDATE_INTERVAL = 5000;  // AHT每5秒更新一次
 
