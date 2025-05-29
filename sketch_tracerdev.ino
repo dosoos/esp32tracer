@@ -60,13 +60,168 @@ unsigned long lastActivityTime = 0;  // 上次活动时间
 const unsigned long SLEEP_DURATION = 60000000;  // 睡眠时间60秒（微秒）
 
 // AHT10传感器参数
-#define ENABLE_AHT10 true  // 设置为false，因为传感器未连接
+#define AHT10_AVAILABLE true  // 设置为false，因为传感器未连接
 Adafruit_AHTX0 aht;
+unsigned long lastAHTUpdate = 0;  // 上次AHT更新时间
+const unsigned long AHT_UPDATE_INTERVAL = 5000;  // AHT每5秒更新一次
 float temperature = 0;
 float humidity = 0;
 
+// RTC内存中的系统时钟参数
+RTC_DATA_ATTR struct SystemTime {
+  unsigned long startMillis;  // 系统启动时的毫秒数
+  unsigned long lastSyncMillis;  // 上次同步时的毫秒数
+  int year;
+  int month;
+  int day;
+  int hour;
+  int minute;
+  int second;
+  bool isSynced;  // 是否已与GPS同步
+} sysTime;
+
+// 更新系统时间的公共函数
+void updateSystemTimeValues(int newYear, int newMonth, int newDay, int newHour, int newMinute, int newSecond) {
+  sysTime.year = newYear;
+  sysTime.month = newMonth;
+  sysTime.day = newDay;
+  sysTime.hour = newHour;
+  sysTime.minute = newMinute;
+  sysTime.second = newSecond;
+  sysTime.lastSyncMillis = millis();
+  sysTime.isSynced = true;
+}
+
+// 处理时间进位和日期变更
+void handleTimeOverflow() {
+  // 处理秒进位
+  if (sysTime.second >= 60) {
+    sysTime.minute += sysTime.second / 60;
+    sysTime.second %= 60;
+  }
+  // 处理分钟进位
+  if (sysTime.minute >= 60) {
+    sysTime.hour += sysTime.minute / 60;
+    sysTime.minute %= 60;
+  }
+  // 处理小时进位
+  if (sysTime.hour >= 24) {
+    sysTime.day += sysTime.hour / 24;
+    sysTime.hour %= 24;
+  }
+  
+  // 处理月份天数
+  int daysInMonth[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+  // 处理闰年
+  if (sysTime.year % 4 == 0 && (sysTime.year % 100 != 0 || sysTime.year % 400 == 0)) {
+    daysInMonth[1] = 29;
+  }
+  
+  while (sysTime.day > daysInMonth[sysTime.month - 1]) {
+    sysTime.day -= daysInMonth[sysTime.month - 1];
+    sysTime.month++;
+    if (sysTime.month > 12) {
+      sysTime.month = 1;
+      sysTime.year++;
+      // 更新闰年
+      if (sysTime.year % 4 == 0 && (sysTime.year % 100 != 0 || sysTime.year % 400 == 0)) {
+        daysInMonth[1] = 29;
+      } else {
+        daysInMonth[1] = 28;
+      }
+    }
+  }
+}
+
+// 初始化系统时钟
+void initSystemTime() {
+  // 检查是否是唤醒后的启动
+  esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
+  
+  if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
+    // 如果是定时器唤醒，更新系统时间
+    unsigned long sleepDuration = SLEEP_DURATION / 1000; // 转换为秒
+    sysTime.second += sleepDuration;
+    handleTimeOverflow();
+    Serial.println("Time updated after sleep");
+  } else {
+    // 如果是首次启动或非定时器唤醒，初始化时间
+    sysTime.startMillis = millis();
+    sysTime.lastSyncMillis = sysTime.startMillis;
+    sysTime.isSynced = false;
+    // 设置默认时间（2000-01-01 00:00:00）
+    updateSystemTimeValues(2000, 1, 1, 0, 0, 0);
+  }
+}
+
+// 同步系统时钟到GPS时间
+void syncTimeWithGPS() {
+  if (gps.date.isValid() && gps.time.isValid()) {
+    // 校验时间有效性
+    if (gps.date.year() < 2025 || gps.date.year() > 2035) {
+      Serial.println("Invalid year detected: " + String(gps.date.year()) + ", skipping sync");
+      return;
+    }
+    if (gps.date.month() < 1 || gps.date.month() > 12) {
+      Serial.println("Invalid month detected: " + String(gps.date.month()) + ", skipping sync");
+      return;
+    }
+    if (gps.date.day() < 1 || gps.date.day() > 31) {
+      Serial.println("Invalid day detected: " + String(gps.date.day()) + ", skipping sync");
+      return;
+    }
+    if (gps.time.hour() < 0 || gps.time.hour() > 23) {
+      Serial.println("Invalid hour detected: " + String(gps.time.hour()) + ", skipping sync");
+      return;
+    }
+    if (gps.time.minute() < 0 || gps.time.minute() > 59) {
+      Serial.println("Invalid minute detected: " + String(gps.time.minute()) + ", skipping sync");
+      return;
+    }
+    if (gps.time.second() < 0 || gps.time.second() > 59) {
+      Serial.println("Invalid second detected: " + String(gps.time.second()) + ", skipping sync");
+      return;
+    }
+
+    updateSystemTimeValues(
+      gps.date.year(),
+      gps.date.month(),
+      gps.date.day(),
+      gps.time.hour(),
+      gps.time.minute(),
+      gps.time.second()
+    );
+    Serial.println("Time synchronized with GPS");
+  }
+}
+
+// 更新系统时钟
+void updateSystemTime() {
+  
+  unsigned long currentMillis = millis();
+  unsigned long elapsedMillis = currentMillis - sysTime.lastSyncMillis;
+  
+  // 更新秒数
+  sysTime.second += elapsedMillis / 1000;
+  sysTime.lastSyncMillis = currentMillis;
+  
+  handleTimeOverflow();
+}
+
+// 获取当前时间字符串
+String getCurrentTimeString() {
+  char timeStr[30];
+  sprintf(timeStr, "%04d-%02d-%02d %02d:%02d:%02d", 
+          sysTime.year, sysTime.month, sysTime.day,
+          sysTime.hour, sysTime.minute, sysTime.second);
+  return String(timeStr);
+}
+
 void setup() {
   Serial.begin(115200);
+  
+  // 初始化系统时钟
+  initSystemTime();
   
   // 检查是否是唤醒后的启动
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
@@ -81,7 +236,7 @@ void setup() {
     }
     
     // 读取温湿度数据
-    if (ENABLE_AHT10) {
+    if (AHT10_AVAILABLE) {
       sensors_event_t humidity_event, temp_event;
       if (aht.getEvent(&humidity_event, &temp_event)) {
         temperature = temp_event.temperature;
@@ -132,7 +287,7 @@ void setup() {
   }
 
   // 初始化AHT10传感器（仅在启用时）
-  if (ENABLE_AHT10) {
+  if (AHT10_AVAILABLE) {
     if (!aht.begin()) {
       Serial.println("Could not find AHT10 sensor!");
     } else {
@@ -161,6 +316,7 @@ void setup() {
   lastActivityTime = millis();
 }
 
+// 检查震动
 void checkVibration() {
   int vibrationValue = digitalRead(VIBRATION_PIN);
   unsigned long currentTime = millis();
@@ -183,44 +339,18 @@ void checkVibration() {
   }
 }
 
+// 保存数据
 void saveData() {
   Serial.println("Saving data...");
   Serial.println("SD Card available: " + String(sdCardAvailable));
-  Serial.println("GPS Status:");
-  Serial.println("- Location valid: " + String(gps.location.isValid()));
-  
-  // 修复日期显示
-  String dateStr = "- Date valid: ";
-  if (gps.date.isValid()) {
-    int year = gps.date.year();
-    // 检查日期是否在合理范围内
-    if (year < 2024 || year > 2034) {  // 假设当前年份是2024
-      Serial.println("Invalid year detected: " + String(year) + ", skipping save");
-      return;
-    }
-    dateStr += String(gps.date.year()) + "-" + 
-               String(gps.date.month()) + "-" + 
-               String(gps.date.day());
-  } else {
-    dateStr += "Invalid";
-  }
-  Serial.println(dateStr);
-  
-  // 修复时间显示
-  String timeStr = "- Time valid: ";
-  if (gps.time.isValid()) {
-    timeStr += String(gps.time.hour()) + ":" + 
-               String(gps.time.minute()) + ":" + 
-               String(gps.time.second());
-  } else {
-    timeStr += "Invalid";
-  }
-  Serial.println(timeStr);
-  
+  Serial.println("- GPS valid: " + String(gps.location.isValid()));
   Serial.println("- Satellites: " + String(gps.satellites.value()));
   if (gps.location.isValid()) {
     Serial.println("- Latitude: " + String(gps.location.lat(), 6));
     Serial.println("- Longitude: " + String(gps.location.lng(), 6));
+  } else {
+    Serial.println("- Latitude: N/A");
+    Serial.println("- Longitude: N/A");
   }
   
   // 修改保存条件：只要有SD卡就保存，即使GPS数据不完整
@@ -234,19 +364,16 @@ void saveData() {
   Serial.println("Time since last save: " + String(currentTime) + " - " + String(lastSaveTime) + " = " + String(timeSinceLastSave) + "ms");
   
   if (timeSinceLastSave < SAVE_INTERVAL) {
+    // 如果时间间隔小于60秒，则不保存数据
     Serial.println("Save interval not reached, waiting " + String(SAVE_INTERVAL - timeSinceLastSave) + "ms more");
     return;
   }
 
-  // 构建文件名
+  // 构建文件名 data_20250529.csv
   String fileName = "/data_";
-  if (gps.date.isValid()) {
-    fileName += String(gps.date.year()) + 
-               String(gps.date.month()) + 
-               String(gps.date.day());
-  } else {
-    fileName += "unknown";
-  }
+  fileName += String(sysTime.year) + 
+               String(sysTime.month) + 
+               String(sysTime.day);
   fileName += ".csv";
   
   Serial.println("Attempting to save to file: " + fileName);
@@ -274,20 +401,8 @@ void saveData() {
   
   Serial.println("File opened successfully");
   
-  // 构建CSV行
-  String dataString = "";
-  
-  // 时间
-  if (gps.time.isValid()) {
-    dataString += String(gps.date.year()) + "-" +
-               String(gps.date.month()) + "-" +
-               String(gps.date.day()) + " " +
-               String(gps.time.hour()) + ":" +
-                 String(gps.time.minute()) + ":" +
-                 String(gps.time.second()) + ",";
-  } else {
-    dataString += "N/A,";
-  }
+  // 使用系统时间
+  String dataString = getCurrentTimeString() + ",";
   
   // 位置数据
   if (gps.location.isValid()) {
@@ -359,24 +474,29 @@ void loop() {
       char c = gpsSerial.read();
       gps.encode(c);
     }
+    
+    // 尝试同步时间
+    syncTimeWithGPS();
+  }
+
+  // 读取温湿度数据(降低频率)
+  if (AHT10_AVAILABLE && currentTime - lastAHTUpdate >= AHT_UPDATE_INTERVAL) {
+    lastAHTUpdate = currentTime;
+    sensors_event_t humidity_event, temp_event;
+    if (aht.getEvent(&humidity_event, &temp_event)) {
+      temperature = temp_event.temperature;
+      humidity = humidity_event.relative_humidity;
+    }
   }
 
   // 检查震动
   checkVibration();
 
+  // 更新系统时钟
+  updateSystemTime();
+
   // 定期保存数据到SD卡
   if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
-
-    // 更新温湿度数据
-    if (ENABLE_AHT10) {
-      sensors_event_t humidity_event, temp_event;
-      if (aht.getEvent(&humidity_event, &temp_event)) {
-        temperature = temp_event.temperature;
-        humidity = humidity_event.relative_humidity;
-      }
-    }
-    
-    // 保存数据到SD卡
     saveData();
   }
   
@@ -389,6 +509,12 @@ void loop() {
     
     display.clearDisplay();
     display.setCursor(0,0);
+    
+    // 显示当前时间
+    display.println(getCurrentTimeString());
+    if (!sysTime.isSynced) {
+      display.println("(Not synced with GPS)");
+    }
 
     // 显示温湿度
     display.print("T: ");
@@ -424,25 +550,6 @@ void loop() {
     } else {
       display.println("Waiting for GPS...");
       display.println("Please wait...");
-    }
-
-    if (gps.date.isValid() && gps.time.isValid()) {
-      display.print(gps.date.year());
-      display.print("-");
-      if (gps.date.month() < 10) display.print("0");
-      display.print(gps.date.month());
-      display.print("-");
-      if (gps.date.day() < 10) display.print("0");
-      display.print(gps.date.day());
-      display.print(" ");
-      if (gps.time.hour() < 10) display.print("0");
-      display.print(gps.time.hour());
-      display.print(":");
-      if (gps.time.minute() < 10) display.print("0");
-      display.print(gps.time.minute());
-      display.print(":");
-      if (gps.time.second() < 10) display.print("0");
-      display.println(gps.time.second());
     }
 
     display.display();
