@@ -413,11 +413,11 @@ void saveData() {
     return;
   }
 
-  // 构建文件名 data_20250529.csv
+  // 构建文件名 data_20250529.csv, 5月补位05
   String fileName = "/data_";
   fileName += String(sysTime.year) + 
-             String(sysTime.month) + 
-             String(sysTime.day);
+             String(sysTime.month < 10 ? "0" + String(sysTime.month) : String(sysTime.month)) + 
+             String(sysTime.day < 10 ? "0" + String(sysTime.day) : String(sysTime.day));
   fileName += ".csv";
   
   Serial.println("Attempting to save to file: " + fileName);
