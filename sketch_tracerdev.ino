@@ -202,14 +202,24 @@ void syncTimeWithGPS() {
 // 更新系统时钟
 void updateSystemTime() {
   
+  // 当前系统时间
+  Serial.println("Current system time: " + getCurrentTimeString());
+
   unsigned long currentMillis = millis();
   unsigned long elapsedMillis = currentMillis - sysTime.lastSyncMillis;
-  
+
+  // 间隔秒数
+  int intervalSeconds = elapsedMillis / 1000;
+  Serial.println("Interval seconds: " + String(intervalSeconds));
+
   // 更新秒数
-  sysTime.second += elapsedMillis / 1000;
+  sysTime.second += intervalSeconds;
   sysTime.lastSyncMillis = currentMillis;
   
   handleTimeOverflow();
+
+  // 更新后打印系统时间
+  Serial.println("Updated system time: " + getCurrentTimeString());
 }
 
 // 获取当前时间字符串
@@ -539,9 +549,7 @@ void loop() {
   updateSystemTime();
   
   // 定期保存数据到SD卡
-  if (currentTime - sysState.lastSaveTime >= SAVE_INTERVAL) {
-    saveData();
-  }
+  saveData();
   
   // 检查是否需要进入睡眠模式
   checkSleep();
