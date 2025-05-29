@@ -30,7 +30,6 @@ TinyGPSPlus gps;
 int vibrationCount = 0;  // 震动计数
 unsigned long lastVibrationTime = 0;  // 上次震动时间
 const unsigned long DEBOUNCE_TIME = 50;  // 防抖时间（毫秒）
-const unsigned long LEVEL_UPDATE_INTERVAL = 2000;  // 震动等级更新间隔（毫秒）
 
 // SD卡参数
 #define SD_CS 5    // SD卡CS引脚连接到GPIO5
@@ -382,15 +381,6 @@ void checkVibration() {
       sysState.lastActivityTime = currentTime;  // 更新活动时间
     }
   }
-  
-  // 定期更新震动等级
-  static unsigned long lastLevelUpdate = 0;
-  if (currentTime - lastLevelUpdate > LEVEL_UPDATE_INTERVAL) {
-    sysState.vibrationLevel = vibrationCount;
-    Serial.println("Vibration level: " + String(sysState.vibrationLevel));
-    vibrationCount = 0;  // 重置计数
-    lastLevelUpdate = currentTime;
-  }
 }
 
 // 保存数据
@@ -403,6 +393,11 @@ void saveData() {
   if (timeSinceLastSave < SAVE_INTERVAL) {
     return;
   }
+
+  // 在保存数据前更新震动等级
+  sysState.vibrationLevel = vibrationCount;
+  vibrationCount = 0;  // 重置计数
+  Serial.println("Vibration level: " + String(sysState.vibrationLevel));
 
   Serial.println("Saving data...");
   Serial.println("SD Card available: " + String(sdCardAvailable));
