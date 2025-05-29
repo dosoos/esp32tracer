@@ -451,7 +451,7 @@ void saveData() {
   String dataString = getCurrentTimeString() + ",";
   
   // 位置数据
-  if (gpsValid) {
+  if (isGPSDataValid()) {
     dataString += String(gps.location.lat(), 6) + "," +
                  String(gps.location.lng(), 6) + "," +
                  String(gps.altitude.meters()) + ",";
