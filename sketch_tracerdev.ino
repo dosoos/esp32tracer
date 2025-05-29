@@ -527,11 +527,12 @@ void loop() {
 
   // 读取GPS数据（降低频率）
   if (currentTime - sysState.lastGPSUpdate >= GPS_UPDATE_INTERVAL) {
+    int intervalSeconds = (currentTime - sysState.lastGPSUpdate)/1000;
     sysState.lastGPSUpdate = currentTime;
     updateGPSData();
     
     // 调试GPS状态
-    Serial.println("Update GPS Status after " + ((currentTime - sysState.lastGPSUpdate)/1000) + " s");
+    Serial.println("Update GPS Status after " + String(intervalSeconds) + " s");
     Serial.println("- Valid: " + String(isGPSDataValid()));
     Serial.println("- Satellites: " + String(gps.satellites.value()));
     if (isGPSDataValid()) {
