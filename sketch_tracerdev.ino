@@ -192,6 +192,12 @@ void saveData() {
   // 修复日期显示
   String dateStr = "- Date valid: ";
   if (gps.date.isValid()) {
+    int year = gps.date.year();
+    // 检查日期是否在合理范围内
+    if (year < 2024 || year > 2034) {  // 假设当前年份是2024
+      Serial.println("Invalid year detected: " + String(year) + ", skipping save");
+      return;
+    }
     dateStr += String(gps.date.year()) + "-" + 
                String(gps.date.month()) + "-" + 
                String(gps.date.day());
