@@ -387,6 +387,7 @@ void checkVibration() {
   static unsigned long lastLevelUpdate = 0;
   if (currentTime - lastLevelUpdate > LEVEL_UPDATE_INTERVAL) {
     sysState.vibrationLevel = vibrationCount;
+    Serial.println("Vibration level: " + String(sysState.vibrationLevel));
     vibrationCount = 0;  // 重置计数
     lastLevelUpdate = currentTime;
   }
