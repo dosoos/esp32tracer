@@ -153,8 +153,7 @@ void initSystemTime() {
     sysTime.startMillis = millis();
     sysTime.lastSyncMillis = sysTime.startMillis;
     sysTime.isSynced = false;
-    // 设置默认时间（2000-01-01 00:00:00）
-    updateSystemTimeValues(2000, 1, 1, 0, 0, 0);
+    // 设置默认时间（0000-00-00 00:00:00）
   }
 }
 
@@ -426,11 +425,21 @@ void saveData() {
     return;
   }
 
-  // 构建文件名 data_20250529.csv, 5月补位05
+  // 构建文件名 data_20250529.csv, 0年补位0000, 5月补位05, 1日补位01, 使用sprintf格式化
   String fileName = "/data_";
-  fileName += String(sysTime.year) + 
-             String(sysTime.month < 10 ? "0" + String(sysTime.month) : String(sysTime.month)) + 
-             String(sysTime.day < 10 ? "0" + String(sysTime.day) : String(sysTime.day));
+  // 年份补位0000
+  char yearStr[5];
+  sprintf(yearStr, "%04d", sysTime.year);
+  fileName += String(yearStr);
+  // 月份补位05
+  char monthStr[3];
+  sprintf(monthStr, "%02d", sysTime.month);
+  fileName += String(monthStr);
+  // 日期补位01
+  char dayStr[3];
+  sprintf(dayStr, "%02d", sysTime.day);
+  fileName += String(dayStr);
+  // 文件名后缀.csv
   fileName += ".csv";
   
   Serial.println("Attempting to save to file: " + fileName);
