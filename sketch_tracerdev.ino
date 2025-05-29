@@ -201,9 +201,6 @@ void syncTimeWithGPS() {
 
 // 更新系统时钟
 void updateSystemTime() {
-  
-  // 当前系统时间
-  Serial.println("Current system time: " + getCurrentTimeString());
 
   unsigned long currentMillis = millis();
   
@@ -214,8 +211,8 @@ void updateSystemTime() {
   int elapsedSeconds = elapsedMillis / 1000;
   
   if (elapsedSeconds > 0) {
+    // 更新当前系统时间
     sysTime.lastSyncMillis = currentMillis;
-    Serial.println("Current time: " + getCurrentTimeString());
 
     // 更新秒数
     sysTime.second += elapsedSeconds;
@@ -223,10 +220,8 @@ void updateSystemTime() {
     // 处理时间进位
     handleTimeOverflow();
 
-    Serial.println("Interval seconds: " + String(elapsedSeconds));
-    
     // 调试信息
-    Serial.println("After process update: " + getCurrentTimeString());
+    Serial.println("Update time: " + getCurrentTimeString());
   }
 }
 
@@ -401,6 +396,15 @@ void checkVibration() {
 
 // 保存数据
 void saveData() {
+
+  // 保存数据不在打印未符合条件的日志
+  unsigned long currentTime = millis();
+  unsigned long timeSinceLastSave = currentTime - sysState.lastSaveTime;
+  
+  if (timeSinceLastSave < SAVE_INTERVAL) {
+    return;
+  }
+
   Serial.println("Saving data...");
   Serial.println("SD Card available: " + String(sdCardAvailable));
   
@@ -420,14 +424,6 @@ void saveData() {
   // 检查SD卡
   if (!sdCardAvailable) {
     Serial.println("SD Card not available, skipping save");
-    return;
-  }
-
-  unsigned long currentTime = millis();
-  unsigned long timeSinceLastSave = currentTime - sysState.lastSaveTime;
-  
-  if (timeSinceLastSave < SAVE_INTERVAL) {
-    Serial.println("Save interval not reached, waiting " + String(SAVE_INTERVAL - timeSinceLastSave) + "ms more");
     return;
   }
 
@@ -535,7 +531,7 @@ void loop() {
     updateGPSData();
     
     // 调试GPS状态
-    Serial.println("GPS Status:");
+    Serial.println("Update GPS Status after " + ((currentTime - sysState.lastGPSUpdate)/1000) + " s");
     Serial.println("- Valid: " + String(isGPSDataValid()));
     Serial.println("- Satellites: " + String(gps.satellites.value()));
     if (isGPSDataValid()) {
