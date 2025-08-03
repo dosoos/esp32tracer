@@ -522,13 +522,10 @@ void loop() {
     updateGPSData();
     
     // 调试GPS状态
-    Serial.println("Update GPS Status:");
-    Serial.println("- Valid: " + String(isGPSDataValid()));
-    Serial.println("- Satellites: " + String(gps.satellites.value()));
-    Serial.println("- Altitude: " + String(gps.altitude.meters()));
     if (isGPSDataValid()) {
-      Serial.println("- Latitude: " + String(gps.location.lat(), 6));
-      Serial.println("- Longitude: " + String(gps.location.lng(), 6));
+      Serial.println("Update GPS Status: Valid: " + String(isGPSDataValid()) + ", Satellites: " + String(gps.satellites.value()) + ", Altitude: " + String(gps.altitude.meters()) + ", Latitude: " + String(gps.location.lat(), 6) + ", Longitude: " + String(gps.location.lng(), 6));
+    } else {
+      Serial.println("Update GPS Status: Valid: " + String(isGPSDataValid()) + ", Satellites: " + String(gps.satellites.value()) + ", Altitude: " + String(gps.altitude.meters()) + ", Latitude: N/A, Longitude: N/A");
     }
     
     // 尝试同步时间
