@@ -543,9 +543,7 @@ void loop() {
     sysState.lastAHTUpdate = currentTime;
     sensors_event_t humidity_event, temp_event;
     if (aht.getEvent(&humidity_event, &temp_event)) {
-      Serial.println("Update AHT10 Status:");
-      Serial.println("- Temperature: " + String(temp_event.temperature));
-      Serial.println("- Humidity: " + String(humidity_event.relative_humidity));
+      Serial.println("Update AHT10 Status: Temperature: " + String(temp_event.temperature) + "C, Humidity: " + String(humidity_event.relative_humidity) + "%");
       sysState.temperature = temp_event.temperature;
       sysState.humidity = humidity_event.relative_humidity;
     }
