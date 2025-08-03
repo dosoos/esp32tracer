@@ -219,9 +219,9 @@ void updateSystemTime() {
     handleTimeOverflow();
 
     // 调试信息
-    if (sysTime.second % 10 == 0) {
-      Serial.println("Update time: " + getCurrentTimeString());
-    }
+    // if (sysTime.second % 10 == 0) {
+    //   Serial.println("Update time: " + getCurrentTimeString());
+    // }
   }
 }
 
