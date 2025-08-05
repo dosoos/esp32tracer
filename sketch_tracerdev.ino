@@ -517,7 +517,6 @@ void loop() {
 
   // 读取GPS数据（降低频率）
   if (currentTime - sysState.lastGPSUpdate >= GPS_UPDATE_INTERVAL) {
-    int intervalSeconds = (currentTime - sysState.lastGPSUpdate)/1000;
     sysState.lastGPSUpdate = currentTime;
     updateGPSData();
     
@@ -536,7 +535,6 @@ void loop() {
   
   // 读取温湿度数据(降低频率)
   if (AHT10_AVAILABLE && currentTime - sysState.lastAHTUpdate >= AHT_UPDATE_INTERVAL) {
-    int intervalSeconds = (currentTime - sysState.lastAHTUpdate)/1000;
     sysState.lastAHTUpdate = currentTime;
     sensors_event_t humidity_event, temp_event;
     if (aht.getEvent(&humidity_event, &temp_event)) {
