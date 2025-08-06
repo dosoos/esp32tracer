@@ -326,7 +326,7 @@ void setup() {
   // 初始化SD卡
   if(SD.begin(SD_CS)) {
     Serial.println("SD Card initialized successfully.");
-    sdCardAvailable = true;
+    sysState.sdCardAvailable = true;
   } else {
     Serial.println("SD Card initialization failed after multiple attempts!");
     Serial.println("Please check:");
@@ -334,7 +334,7 @@ void setup() {
     Serial.println("2. All connections are secure");
     Serial.println("3. SD card module is powered (3.3V)");
     Serial.println("4. SD card is formatted as FAT32");
-    sdCardAvailable = false;
+    sysState.sdCardAvailable = false;
   }
   
   // 初始化OLED
