@@ -14,7 +14,7 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // 显示超时参数
-const unsigned long DISPLAY_TIMEOUT = 300000;  // 5分钟后关闭显示
+const unsigned long DISPLAY_TIMEOUT = 1000 * 60 * 5;  // 5分钟后关闭显示
 unsigned long displayStartTime = 0;  // 显示开始时间
 bool displayActive = true;  // 显示状态标志
 
