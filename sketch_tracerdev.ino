@@ -39,18 +39,18 @@ const unsigned long DEBOUNCE_TIME = 50;  // 防抖时间（毫秒）
 File dataFile;
 bool sdCardAvailable = false;
 
-const unsigned long SAVE_INTERVAL = 60000;  // 每60秒保存一次数据
+const unsigned long SAVE_INTERVAL = 1000 * 60;  // 每60秒保存一次数据
 
 // 显示更新参数
-const unsigned long DISPLAY_UPDATE_INTERVAL = 5000;  // 显示每5秒更新一次
+const unsigned long DISPLAY_UPDATE_INTERVAL = 1000 * 1;  // 显示每1秒更新一次
 
 // GPS更新参数
-const unsigned long GPS_UPDATE_INTERVAL = 10000;  // GPS每10秒更新一次
+const unsigned long GPS_UPDATE_INTERVAL = 1000 * 10;  // GPS每10秒更新一次
 
 // 电源管理参数
-const unsigned long SLEEP_CHECK_INTERVAL = 30000;  // 每30秒检查一次是否需要进入睡眠
-const unsigned long INACTIVITY_TIMEOUT = 300000;  // 5分钟无活动后进入睡眠
-const unsigned long SLEEP_DURATION = 60000000;  // 睡眠时间60秒（微秒）
+const unsigned long SLEEP_CHECK_INTERVAL = 1000 * 30;  // 每30秒检查一次是否需要进入睡眠
+const unsigned long INACTIVITY_TIMEOUT = 1000 * 60 * 5;  // 5分钟无活动后进入睡眠
+const unsigned long SLEEP_DURATION = 1000 * 60;  // 睡眠时间60秒
 
 // AHT10传感器参数
 bool AHT10_AVAILABLE = false;  // 设置为false，因为传感器未初始化
@@ -304,7 +304,7 @@ void setup() {
     saveData();
     
     // 重新进入睡眠
-    esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
+    esp_sleep_enable_timer_wakeup(SLEEP_DURATION * 1000);
     esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
     esp_deep_sleep_start();
   }
@@ -493,7 +493,7 @@ void checkSleep() {
     if (currentTime - sysState.lastActivityTime >= INACTIVITY_TIMEOUT) {
       
       // 配置定时器唤醒
-      esp_sleep_enable_timer_wakeup(SLEEP_DURATION);
+      esp_sleep_enable_timer_wakeup(SLEEP_DURATION * 1000);
       
       // 配置震动传感器唤醒
       esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
