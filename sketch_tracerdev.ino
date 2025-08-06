@@ -405,7 +405,7 @@ void saveData() {
   Serial.println("Saving data...");
   
   // 检查SD卡
-  if (!sdCardAvailable) {
+  if (!sysState.sdCardAvailable) {
     Serial.println("SD Card not available, skipping save");
     return;
   }
