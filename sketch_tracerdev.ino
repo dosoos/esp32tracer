@@ -37,7 +37,6 @@ const unsigned long DEBOUNCE_TIME = 50;  // 防抖时间（毫秒）
 #define SD_MISO 19 // SD卡MISO引脚连接到GPIO19
 #define SD_SCK 18  // SD卡CLK引脚连接到GPIO18
 File dataFile;
-bool sdCardAvailable = false;
 
 const unsigned long SAVE_INTERVAL = 1000 * 60;  // 每60秒保存一次数据
 
@@ -81,6 +80,7 @@ RTC_DATA_ATTR struct SystemState {
   int vibrationLevel;  // 震动等级
   float temperature;  // 温度
   float humidity;  // 湿度
+  bool sdCardAvailable;  // SD卡可用状态
 } sysState;
 
 // 更新系统时间的公共函数
@@ -269,6 +269,7 @@ void initSystemState() {
     sysState.vibrationLevel = 0;
     sysState.temperature = 0;
     sysState.humidity = 0;
+    sysState.sdCardAvailable = false;  // 初始化为false，等待SD卡初始化
   }
 }
 
