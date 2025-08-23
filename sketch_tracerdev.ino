@@ -410,6 +410,12 @@ void saveData() {
     return;
   }
 
+  // 检查日期年份, 小于2025年不保存, 大于2035年不保存
+  if (sysTime.year < 2025 || sysTime.year > 2035) {
+    Serial.println("Invalid year detected: " + String(sysTime.year) + ", skipping save");
+    return;
+  }
+
   // 构建文件名 data_20250529.csv, 0年补位0000, 5月补位05, 1日补位01, 使用sprintf格式化
   String fileName = "/data_";
   // 年份补位0000
