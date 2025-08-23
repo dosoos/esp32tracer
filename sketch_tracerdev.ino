@@ -286,7 +286,7 @@ void setup() {
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
   
   if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
-    // 如果是定时器唤醒，立即采集并保存数据
+    // 如果是定时器唤醒，立即采集并保存数据（浅度睡眠保持外设状态）
     Serial.println("Wakeup by timer at " + getCurrentTimeString());
 
     // 读取GPS数据
@@ -308,10 +308,10 @@ void setup() {
     saveData();
     
     // 重新进入睡眠
-    Serial.println("Entering deep sleep...");
+    Serial.println("Entering light sleep...");
     esp_sleep_enable_timer_wakeup(SLEEP_DURATION * 1000);
     esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
-    esp_deep_sleep_start();
+    esp_light_sleep_start();
   }
   
   // 初始化GPS串口
@@ -504,8 +504,8 @@ void checkSleep() {
       // 配置震动传感器唤醒
       esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
       
-      // 进入深度睡眠
-      esp_deep_sleep_start();
+      // 进入浅度睡眠（保持外设状态，包括SD卡连接）
+      esp_light_sleep_start();
     }
   }
 }
