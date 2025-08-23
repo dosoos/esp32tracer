@@ -54,7 +54,7 @@ const unsigned long SLEEP_DURATION = 1000 * 60;  // 睡眠时间60秒
 // AHT10传感器参数
 bool AHT10_AVAILABLE = false;  // 设置为false，因为传感器未初始化
 Adafruit_AHTX0 aht;
-const unsigned long AHT_UPDATE_INTERVAL = 5000;  // AHT每5秒更新一次
+const unsigned long AHT_UPDATE_INTERVAL = 1000 * 5;  // AHT每5秒更新一次
 
 // RTC内存中的系统时钟参数
 RTC_DATA_ATTR struct SystemTime {
@@ -278,6 +278,9 @@ void setup() {
   
   // 初始化系统时钟
   initSystemTime();
+
+  // 初始化系统参数
+  initSystemState();
   
   // 检查是否是唤醒后的启动
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
@@ -305,6 +308,7 @@ void setup() {
     saveData();
     
     // 重新进入睡眠
+    Serial.println("Entering deep sleep...");
     esp_sleep_enable_timer_wakeup(SLEEP_DURATION * 1000);
     esp_sleep_enable_ext0_wakeup((gpio_num_t)VIBRATION_PIN, HIGH);
     esp_deep_sleep_start();
@@ -329,11 +333,6 @@ void setup() {
     sysState.sdCardAvailable = true;
   } else {
     Serial.println("SD Card initialization failed after multiple attempts!");
-    Serial.println("Please check:");
-    Serial.println("1. SD card is properly inserted");
-    Serial.println("2. All connections are secure");
-    Serial.println("3. SD card module is powered (3.3V)");
-    Serial.println("4. SD card is formatted as FAT32");
     sysState.sdCardAvailable = false;
   }
   
